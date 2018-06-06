@@ -97,12 +97,20 @@ namespace WebApiContrib.Core.Formatter.Csv
 
                         var _val = val.Value.ToString();
 
-                        //Escape quotas
-                        _val = _val.Replace("\"", "\"\"");
+//                        //Check if the value contans a comma and place it in quotes if so
+//                        if (_val.Contains(","))
+//                            _val = string.Concat("\"", _val, "\"");
 
-                        //Check if the value contans a delimiter and place it in quotes if so
-                        if (_val.Contains(_options.CsvDelimiter))
+                        //quote 
+                        if (_val.Contains(_options.CsvDelimiter) ||
+                            _val.Contains("\"")
+                        )
+                        {
+                            //Escape double quotas
+                            _val = _val.Replace("\"", "\"\"");
+                            //Quote field
                             _val = string.Concat("\"", _val, "\"");
+                        }
 
                         //Replace any \r or \n special characters from a new line with a space
                         if (_val.Contains("\r"))
