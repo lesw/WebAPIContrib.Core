@@ -71,14 +71,10 @@ namespace WebApiContrib.Core.Formatter.Csv
 
             if (_options.UseSingleLineHeaderInCsv)
             {
-                await streamWriter.WriteLineAsync(
-                    string.Join(
-                        _options.CsvDelimiter, itemType.GetProperties().Select(x => x.GetCustomAttribute<DisplayAttribute>(false)?.Name ?? x.Name)
-                    )
-                );
+                await streamWriter.WriteLineAsync(GenerateHeaderLine(itemType));
             }
 
-            foreach (var obj in (IEnumerable<object>)context.Object)
+            foreach (var obj in (IEnumerable<object>) context.Object)
             {
 
                 var vals = obj.GetType().GetProperties().Select(
@@ -92,45 +88,51 @@ namespace WebApiContrib.Core.Formatter.Csv
 
                 foreach (var val in vals)
                 {
-                    if (val.Value != null)
-                    {
-
-                        var _val = val.Value.ToString();
-
-//                        //Check if the value contans a comma and place it in quotes if so
-//                        if (_val.Contains(","))
-//                            _val = string.Concat("\"", _val, "\"");
-
-                        //quote 
-                        if (_val.Contains(_options.CsvDelimiter) ||
-                            _val.Contains("\"")
-                        )
-                        {
-                            //Escape double quotas
-                            _val = _val.Replace("\"", "\"\"");
-                            //Quote field
-                            _val = string.Concat("\"", _val, "\"");
-                        }
-
-                        //Replace any \r or \n special characters from a new line with a space
-                        if (_val.Contains("\r"))
-                            _val = _val.Replace("\r", " ");
-                        if (_val.Contains("\n"))
-                            _val = _val.Replace("\n", " ");
-
-                        valueLine = string.Concat(valueLine, _val, _options.CsvDelimiter);
-
-                    }
-                    else
-                    {
-                        valueLine = string.Concat(valueLine, string.Empty, _options.CsvDelimiter);
-                    }
+                    var _val = GenerateFieldString(val.Value);
+                    valueLine = string.Concat(valueLine, _val, _options.CsvDelimiter);
                 }
 
                 await streamWriter.WriteLineAsync(valueLine.TrimEnd(_options.CsvDelimiter.ToCharArray()));
             }
 
             await streamWriter.FlushAsync();
+        }
+
+        internal string GenerateHeaderLine(Type itemType)
+        {
+            return string.Join(
+                _options.CsvDelimiter,
+                itemType.GetProperties().Select(x => x.GetCustomAttribute<DisplayAttribute>(false)?.Name ?? x.Name)
+            );
+        }
+
+        internal string GenerateFieldString(object rawValue)
+        {
+            if (rawValue == null)
+            {
+                return string.Empty;
+            }
+
+            var _val = rawValue.ToString();
+
+            //quote 
+            if (_val.Contains(_options.CsvDelimiter) || _val.Contains("\""))
+            {
+                //Escape double quotas
+                _val = _val.Replace("\"", "\"\"");
+                //Quote field
+                _val = string.Concat("\"", _val, "\"");
+            }
+
+            //Replace any \r or \n special characters from a new line with a space
+            if (_val.Contains("\r\n"))
+                _val = _val.Replace("\r\n", " ");
+            if (_val.Contains("\r"))
+                _val = _val.Replace("\r", " ");
+            if (_val.Contains("\n"))
+                _val = _val.Replace("\n", " ");
+
+            return _val;
         }
     }
 }

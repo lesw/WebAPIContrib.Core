@@ -1,53 +1,56 @@
 using System;
-using System.IdentityModel.Tokens.Jwt;
-using System.IO;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.TestHost;
-using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace WebApiContrib.Core.Formatter.Csv.Tests
 {
-    public class CsvOutputFormatterTests : IDisposable
+    public class CsvOutputFormatterTests
     {
-        private TestServer _server;
-        private HttpClient _client;
+        private CsvOutputFormatter _sut;
+        private static string _delimiter = ",";
 
         public CsvOutputFormatterTests()
         {
-            _server = new TestServer(new WebHostBuilder()
-                .UseContentRoot(Directory.GetCurrentDirectory())
-                .UseStartup<Startup>()
-                .ConfigureServices(services => services.AddMvcCore()
-                    .AddJsonFormatters()
-                    .AddCsvSerializerFormatters(new CsvFormatterOptions()
+            _sut = new CsvOutputFormatter(new CsvFormatterOptions()
                     {
                         UseSingleLineHeaderInCsv = true,
-                        CsvDelimiter = ",",
+                        CsvDelimiter = _delimiter,
                         Encoding = "utf-8"
-                    })
-                ));
-
-            _client = _server.CreateClient();
-        }
-
-        public void Dispose()
-        {
-            _client?.Dispose();
-            _server?.Dispose();
+                    });
         }
 
         [Fact]
-        public async Task Quotes_Are_Escaped()
+        public void GenerateFieldString_ReturnsEmpty_WhenNull()
         {
-            var request = new HttpRequestMessage(HttpMethod.Get, "/api/books/data.csv");
-            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/csv"));
-            var result = await _client.SendAsync(request);
+            var result = _sut.GenerateFieldString(null);
+            Assert.Equal(string.Empty, result);
+        }
 
-            var books = new Deserializer().Deserialize<Book[]>(new StreamReader(await result.Content.ReadAsStreamAsync()));
+        [Fact]
+        public void GenerateFieldString_EscapesDelimiter()
+        {
+            var result = _sut.GenerateFieldString($"Super{_delimiter} luxurious truck");
+            Assert.Equal($"\"Super{_delimiter} luxurious truck\"", result);
+        }
+
+        [Fact]
+        public void GenerateFieldString_EscapesQuotes()
+        {
+            var result = _sut.GenerateFieldString("Super \"luxurious\" truck");
+            Assert.Equal("\"Super \"\"luxurious\"\" truck\"", result);
+        }
+
+        [Fact]
+        public void GenerateFieldString_ReplacesReturnCarretWithSpace()
+        {
+            var result = _sut.GenerateFieldString("Super\rtruck");
+            Assert.Equal("Super truck", result);
+        }
+        
+        [Fact]
+        public void GenerateFieldString_ReplacesNewLineWithSpace()
+        {
+            var result = _sut.GenerateFieldString($"Super{Environment.NewLine}truck");
+            Assert.Equal("Super truck", result);
         }
     }
 }

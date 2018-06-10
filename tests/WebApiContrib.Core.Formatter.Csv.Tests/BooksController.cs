@@ -6,27 +6,11 @@ namespace WebApiContrib.Core.Formatter.Csv.Tests
     public class BooksController : ControllerBase
     {
         [HttpGet]
-        [Route("dataWithQuotes.csv")]
+        [Route("data.csv")]
         [Produces("text/csv")]
-        public IActionResult GetDataWithQuotesAsCsv()
+        public IActionResult GetDataAsCsv()
         {
-            return Ok(Book.Data);
-        }
-
-        [HttpGet]
-        [Route("dataWithComma.csv")]
-        [Produces("text/csv")]
-        public IActionResult GetDataWithCommaAsCsv()
-        {
-            return Ok(Book.Data);
-        }
-
-        [HttpGet]
-        [Route("dataWithLineBreaks.csv")]
-        [Produces("text/csv")]
-        public IActionResult GetDataWithLineBreaksAsCsv()
-        {
-            return Ok(Book.Data);
+            return Ok(Book.DataArray);
         }
     }
 }
